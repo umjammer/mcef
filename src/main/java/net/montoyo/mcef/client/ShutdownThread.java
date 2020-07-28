@@ -2,27 +2,23 @@ package net.montoyo.mcef.client;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Modifier;
-import java.util.ArrayList;
 
+import net.minecraft.client.MinecraftClient;
 import net.montoyo.mcef.MCEF;
-import org.cef.CefApp;
-import org.cef.browser.CefBrowserOsr;
-
-import net.minecraft.client.Minecraft;
 import net.montoyo.mcef.utilities.Log;
 
 public class ShutdownThread extends Thread {
-    
+
     private Field running = null;
-    private Minecraft mc = Minecraft.getMinecraft();
-    
+    private MinecraftClient mc = MinecraftClient.getInstance();
+
     public ShutdownThread() {
         super("MCEF-Shutdown");
         setDaemon(false);
 
         try {
-            Field[] fields = Minecraft.class.getDeclaredFields();
-            
+            Field[] fields = MinecraftClient.class.getDeclaredFields();
+
             for(Field f: fields) {
                 if(f.getType().equals(Boolean.TYPE)) {
                     //Log.info("Minecraft.%s: %s", f.getName(), Modifier.toString(f.getModifiers()));
@@ -40,14 +36,14 @@ public class ShutdownThread extends Thread {
             t.printStackTrace();
         }
     }
-    
+
     @Override
     public void run() {
         if(running == null)
             return;
-        
+
         Log.info("Minecraft shutdown detection thread started.");
-        
+
         while(true) {
             try {
                 if(!running.getBoolean(mc))
@@ -57,7 +53,7 @@ public class ShutdownThread extends Thread {
                 t.printStackTrace();
                 return;
             }
-            
+
             try {
                 sleep(100);
             } catch(Throwable t) {}
@@ -65,5 +61,4 @@ public class ShutdownThread extends Thread {
 
         MCEF.PROXY.onShutdown();
     }
-
 }

@@ -10,16 +10,38 @@ import java.awt.Rectangle;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
-import net.minecraft.client.renderer.BufferBuilder;
-import net.minecraft.client.renderer.GlStateManager;
-import net.minecraft.client.renderer.Tessellator;
+import org.lwjgl.opengl.EXTBGRA;
 
-import net.minecraft.client.renderer.vertex.DefaultVertexFormats;
+import com.mojang.blaze3d.systems.RenderSystem;
+
+import static org.lwjgl.opengl.GL11.GL_LINEAR;
+import static org.lwjgl.opengl.GL11.GL_MODULATE;
+import static org.lwjgl.opengl.GL11.GL_QUADS;
+import static org.lwjgl.opengl.GL11.GL_RGBA;
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_2D;
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_ENV;
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_ENV_MODE;
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_MAG_FILTER;
+import static org.lwjgl.opengl.GL11.GL_TEXTURE_MIN_FILTER;
+import static org.lwjgl.opengl.GL11.GL_UNPACK_ALIGNMENT;
+import static org.lwjgl.opengl.GL11.GL_UNPACK_ROW_LENGTH;
+import static org.lwjgl.opengl.GL11.GL_UNPACK_SKIP_PIXELS;
+import static org.lwjgl.opengl.GL11.GL_UNPACK_SKIP_ROWS;
+import static org.lwjgl.opengl.GL11.GL_UNSIGNED_BYTE;
+import static org.lwjgl.opengl.GL11.glDeleteTextures;
+import static org.lwjgl.opengl.GL11.glGenTextures;
+import static org.lwjgl.opengl.GL11.glGetInteger;
+import static org.lwjgl.opengl.GL11.glPixelStorei;
+import static org.lwjgl.opengl.GL11.glTexEnvf;
+import static org.lwjgl.opengl.GL11.glTexImage2D;
+import static org.lwjgl.opengl.GL11.glTexParameteri;
+import static org.lwjgl.opengl.GL11.glTexSubImage2D;
+
+import net.minecraft.client.render.BufferBuilder;
+import net.minecraft.client.render.Tessellator;
+import net.minecraft.client.render.VertexFormats;
 import net.montoyo.mcef.MCEF;
 import net.montoyo.mcef.utilities.Log;
-import org.lwjgl.opengl.EXTBgra;
-
-import static org.lwjgl.opengl.GL11.*;
 
 public class CefRenderer {
 
@@ -49,17 +71,17 @@ public class CefRenderer {
 
     @SuppressWarnings("static-access")
     protected void initialize() {
-        GlStateManager.enableTexture2D();
+        RenderSystem.enableTexture();
         texture_id_[0] = glGenTextures();
 
         if(MCEF.CHECK_VRAM_LEAK)
             GL_TEXTURES.add(texture_id_[0]);
 
-        GlStateManager.bindTexture(texture_id_[0]);
+        RenderSystem.bindTexture(texture_id_[0]);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
         glTexEnvf(GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE);
-        GlStateManager.bindTexture(0);
+        RenderSystem.bindTexture(0);
     }
 
     protected void cleanup() {
@@ -78,14 +100,14 @@ public class CefRenderer {
         Tessellator t = Tessellator.getInstance();
         BufferBuilder vb = t.getBuffer();
 
-        GlStateManager.bindTexture(texture_id_[0]);
-        vb.begin(GL_QUADS, DefaultVertexFormats.POSITION_TEX_COLOR);
-        vb.pos(x1, y1, 0.0).tex(0.0, 1.0).color(255, 255, 255, 255).endVertex();
-        vb.pos(x2, y1, 0.0).tex(1.f, 1.f).color(255, 255, 255, 255).endVertex();
-        vb.pos(x2, y2, 0.0).tex(1.f, 0.0).color(255, 255, 255, 255).endVertex();
-        vb.pos(x1, y2, 0.0).tex(0.0, 0.0).color(255, 255, 255, 255).endVertex();
+        RenderSystem.bindTexture(texture_id_[0]);
+        vb.begin(GL_QUADS, VertexFormats.POSITION_TEXTURE_COLOR);
+        vb.vertex(x1, y1, 0.0).texture(0.0f, 1.0f).color(255, 255, 255, 255).next();
+        vb.vertex(x2, y1, 0.0).texture(1.f, 1.f).color(255, 255, 255, 255).next();
+        vb.vertex(x2, y2, 0.0).texture(1.f, 0.0f).color(255, 255, 255, 255).next();
+        vb.vertex(x1, y2, 0.0).texture(0.0f, 0.0f).color(255, 255, 255, 255).next();
         t.draw();
-        GlStateManager.bindTexture(0);
+        RenderSystem.bindTexture(0);
     }
 
     protected void onPopupSize(Rectangle rect) {
@@ -121,7 +143,7 @@ public class CefRenderer {
 
     protected void onPaint(boolean popup, Rectangle[] dirtyRects, ByteBuffer buffer, int width, int height, boolean completeReRender) {
         if(transparent_) // Enable alpha blending.
-            GlStateManager.enableBlend();
+            RenderSystem.enableBlend();
 
         final int size = (width * height) << 2;
         if(size > buffer.limit()) {
@@ -130,8 +152,8 @@ public class CefRenderer {
         }
 
         // Enable 2D textures.
-        GlStateManager.enableTexture2D();
-        GlStateManager.bindTexture(texture_id_[0]);
+        RenderSystem.enableTexture();
+        RenderSystem.bindTexture(texture_id_[0]);
 
         int oldAlignement = glGetInteger(GL_UNPACK_ALIGNMENT);
         glPixelStorei(GL_UNPACK_ALIGNMENT, 1);
@@ -141,7 +163,7 @@ public class CefRenderer {
                 // Update/resize the whole texture.
                 view_width_ = width;
                 view_height_ = height;
-                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, view_width_, view_height_, 0, EXTBgra.GL_BGRA_EXT, GL_UNSIGNED_BYTE, buffer);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, view_width_, view_height_, 0, EXTBGRA.GL_BGRA_EXT, GL_UNSIGNED_BYTE, buffer);
             } else {
                 glPixelStorei(GL_UNPACK_ROW_LENGTH, view_width_);
 
@@ -152,7 +174,7 @@ public class CefRenderer {
                     else {
                         glPixelStorei(GL_UNPACK_SKIP_PIXELS, rect.x);
                         glPixelStorei(GL_UNPACK_SKIP_ROWS, rect.y);
-                        glTexSubImage2D(GL_TEXTURE_2D, 0, rect.x, rect.y, rect.width, rect.height, EXTBgra.GL_BGRA_EXT, GL_UNSIGNED_BYTE, buffer);
+                        glTexSubImage2D(GL_TEXTURE_2D, 0, rect.x, rect.y, rect.width, rect.height, EXTBGRA.GL_BGRA_EXT, GL_UNSIGNED_BYTE, buffer);
                     }
                 }
 
@@ -184,14 +206,14 @@ public class CefRenderer {
             glPixelStorei(GL_UNPACK_ROW_LENGTH, width);
             glPixelStorei(GL_UNPACK_SKIP_PIXELS, skip_pixels);
             glPixelStorei(GL_UNPACK_SKIP_ROWS, skip_rows);
-            glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, w, h, EXTBgra.GL_BGRA_EXT, GL_UNSIGNED_BYTE, buffer);
+            glTexSubImage2D(GL_TEXTURE_2D, 0, x, y, w, h, EXTBGRA.GL_BGRA_EXT, GL_UNSIGNED_BYTE, buffer);
             glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
             glPixelStorei(GL_UNPACK_SKIP_PIXELS, 0);
             glPixelStorei(GL_UNPACK_SKIP_ROWS, 0);
         }
 
         glPixelStorei(GL_UNPACK_ALIGNMENT, oldAlignement);
-        GlStateManager.bindTexture(0);
+        RenderSystem.bindTexture(0);
     }
 
     public int getViewWidth() {

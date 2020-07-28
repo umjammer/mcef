@@ -7,22 +7,22 @@ import java.util.ArrayList;
 import java.util.Map.Entry;
 import java.util.Set;
 
-import net.minecraft.client.Minecraft;
-import net.montoyo.mcef.setup.FileListing;
 import org.cef.OS;
-
-import net.montoyo.mcef.MCEF;
-import net.montoyo.mcef.client.ClientProxy;
-import net.montoyo.mcef.utilities.IProgressListener;
-import net.montoyo.mcef.utilities.Log;
-import net.montoyo.mcef.utilities.Util;
-import net.montoyo.mcef.utilities.Version;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonIOException;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+
+import net.minecraft.client.MinecraftClient;
+import net.montoyo.mcef.MCEF;
+import net.montoyo.mcef.client.ClientProxy;
+import net.montoyo.mcef.setup.FileListing;
+import net.montoyo.mcef.utilities.IProgressListener;
+import net.montoyo.mcef.utilities.Log;
+import net.montoyo.mcef.utilities.Util;
+import net.montoyo.mcef.utilities.Version;
 
 /**
  * A class for updating and parsing the remote configuration file.
@@ -33,7 +33,7 @@ public class RemoteConfig {
     
     private static String PLATFORM;
     private ResourceList resources = new ResourceList();
-    private ArrayList<String> extract = new ArrayList<String>();
+    private ArrayList<String> extract = new ArrayList<>();
     private String version = null;
     
     public RemoteConfig() {
@@ -169,7 +169,7 @@ public class RemoteConfig {
         
         JsonElement mcVersions = json.get("latestVersions");
         if(mcVersions != null && mcVersions.isJsonObject()) {
-            JsonElement cVer = mcVersions.getAsJsonObject().get(Minecraft.getMinecraft().getVersion());
+            JsonElement cVer = mcVersions.getAsJsonObject().get(MinecraftClient.getInstance().getVersionType());
 
             if(cVer != null && cVer.isJsonPrimitive())
                 version = cVer.getAsString();

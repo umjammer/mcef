@@ -1,18 +1,20 @@
 package net.montoyo.mcef.coremod;
 
-import net.minecraftforge.fml.relauncher.IFMLLoadingPlugin;
-import net.minecraft.launchwrapper.IClassTransformer;
-import org.apache.logging.log4j.Level;
-import org.apache.logging.log4j.LogManager;
-import org.objectweb.asm.*;
-
 import java.util.Map;
 
-@IFMLLoadingPlugin.Name(value = "ShutdownPatcher")
-@IFMLLoadingPlugin.TransformerExclusions(value = "net.montoyo.mcef.")
-@IFMLLoadingPlugin.SortingIndex(value = 90007531) //It has to run after the searge-name transformation
-@IFMLLoadingPlugin.MCVersion("1.12.2")
-public class ShutdownPatcher implements IFMLLoadingPlugin, IClassTransformer {
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.objectweb.asm.ClassReader;
+import org.objectweb.asm.ClassVisitor;
+import org.objectweb.asm.ClassWriter;
+import org.objectweb.asm.MethodVisitor;
+import org.objectweb.asm.Opcodes;
+
+//@IFMLLoadingPlugin.Name(value = "ShutdownPatcher")
+//@IFMLLoadingPlugin.TransformerExclusions(value = "net.montoyo.mcef.")
+//@IFMLLoadingPlugin.SortingIndex(value = 90007531) //It has to run after the searge-name transformation
+//@IFMLLoadingPlugin.MCVersion("1.12.2")
+public class ShutdownPatcher {
 
     private static boolean PATCH_OK = false;
     private static final String OBF_SHUTDOWN_METHOD = "func_71405_e"; //The "searge-obfuscated" name of the Minecraft.shutdownMinecraftApplet() method
@@ -21,31 +23,31 @@ public class ShutdownPatcher implements IFMLLoadingPlugin, IClassTransformer {
         return PATCH_OK;
     }
 
-    @Override
+//    @Override
     public String[] getASMTransformerClass() {
         return new String[] { "net.montoyo.mcef.coremod.ShutdownPatcher" };
     }
 
-    @Override
+//    @Override
     public String getModContainerClass() {
         return null;
     }
 
-    @Override
+//    @Override
     public String getSetupClass() {
         return null;
     }
 
-    @Override
+//    @Override
     public void injectData(Map<String, Object> data) {
     }
 
-    @Override
+//    @Override
     public String getAccessTransformerClass() {
         return null;
     }
 
-    @Override
+//    @Override
     public byte[] transform(String name, String deobfName, byte[] cls) {
         if(!deobfName.equals("net.minecraft.client.Minecraft"))
             return cls;

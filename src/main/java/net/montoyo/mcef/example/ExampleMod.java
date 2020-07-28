@@ -1,25 +1,19 @@
 package net.montoyo.mcef.example;
 
-import net.minecraftforge.common.MinecraftForge;
-import net.montoyo.mcef.utilities.Log;
-import org.lwjgl.input.Keyboard;
+import org.lwjgl.glfw.GLFW;
 
-import net.minecraft.client.Minecraft;
-import net.minecraft.client.settings.KeyBinding;
-import net.minecraftforge.client.event.RenderGameOverlayEvent;
-
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.options.KeyBinding;
+import net.minecraft.client.util.math.MatrixStack;
 import net.montoyo.mcef.api.API;
 import net.montoyo.mcef.api.IBrowser;
 import net.montoyo.mcef.api.IDisplayHandler;
 import net.montoyo.mcef.api.IJSQueryCallback;
 import net.montoyo.mcef.api.IJSQueryHandler;
 import net.montoyo.mcef.api.MCEFApi;
-
-import net.minecraftforge.fml.client.registry.ClientRegistry;
-import net.minecraftforge.fml.common.FMLCommonHandler;
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
-import net.minecraftforge.fml.relauncher.Side;
+import net.montoyo.mcef.utilities.Log;
 
 /**
  * An example mod that shows you how to use MCEF.
@@ -34,8 +28,8 @@ public class ExampleMod implements IDisplayHandler, IJSQueryHandler {
     public static ExampleMod INSTANCE;
 
     public ScreenCfg hudBrowser = null;
-    private KeyBinding key = new KeyBinding("Open Browser", Keyboard.KEY_F10, "key.categories.misc");
-    private Minecraft mc = Minecraft.getMinecraft();
+    private KeyBinding key = new KeyBinding("Open Browser", GLFW.GLFW_KEY_F10, "key.categories.misc");
+    private MinecraftClient mc = MinecraftClient.getInstance();
     private BrowserScreen backup = null;
     private API api;
 
@@ -52,8 +46,8 @@ public class ExampleMod implements IDisplayHandler, IJSQueryHandler {
         INSTANCE = this;
         
         //Register key binding and listen to the FML event bus for ticks.
-        ClientRegistry.registerKeyBinding(key);
-        MinecraftForge.EVENT_BUS.register(this);
+        KeyBindingHelper.registerKeyBinding(key);
+//        MinecraftForge.EVENT_BUS.register(this);
 
         if(api != null) {
             //Register this class to handle onAddressChange and onQuery events
@@ -74,11 +68,11 @@ public class ExampleMod implements IDisplayHandler, IJSQueryHandler {
         if(mc.currentScreen instanceof BrowserScreen)
             ((BrowserScreen) mc.currentScreen).loadURL(url);
         else if(hasBackup()) {
-            mc.displayGuiScreen(backup);
+            mc.openScreen(backup);
             backup.loadURL(url);
             backup = null;
         } else
-            mc.displayGuiScreen(new BrowserScreen(url));
+            mc.openScreen(new BrowserScreen(url));
     }
     
     public IBrowser getBrowser() {
@@ -90,16 +84,16 @@ public class ExampleMod implements IDisplayHandler, IJSQueryHandler {
             return null;
     }
     
-    @SubscribeEvent
-    public void onTick(TickEvent ev) {
-        if(ev.phase == TickEvent.Phase.START && ev.side == Side.CLIENT && ev.type == TickEvent.Type.CLIENT) {
+//    @SubscribeEvent
+    public void onTick(/*TickEvent ev*/) {
+        ClientTickEvents.START_CLIENT_TICK.register(client -> {
             //Check if our key was pressed
             if(key.isPressed() && !(mc.currentScreen instanceof BrowserScreen)) {
                 //Display the web browser UI.
-                mc.displayGuiScreen(hasBackup() ? backup : new BrowserScreen());
+                mc.openScreen(hasBackup() ? backup : new BrowserScreen());
                 backup = null;
             }
-        }
+        });
     }
 
     @Override
@@ -129,7 +123,7 @@ public class ExampleMod implements IDisplayHandler, IJSQueryHandler {
             if(b.getURL().startsWith("mod://")) {
                 //Only allow MCEF URLs to get the player's username to keep his identity secret
 
-                mc.addScheduledTask(() -> {
+                mc.submit(() -> {
                     //Add this to a scheduled task because this is NOT called from the main Minecraft thread...
 
                     try {
@@ -154,10 +148,10 @@ public class ExampleMod implements IDisplayHandler, IJSQueryHandler {
     public void cancelQuery(IBrowser b, long queryId) {
     }
 
-    @SubscribeEvent
-    public void onDrawHUD(RenderGameOverlayEvent.Post ev) {
+//    @SubscribeEvent
+    public void onDrawHUD(/*RenderGameOverlayEvent.Post ev*/) {
         if(hudBrowser != null)
-            hudBrowser.drawScreen(0, 0, 0.f);
+            hudBrowser.render(new MatrixStack(), 0, 0, 0.f);
     }
 
 }

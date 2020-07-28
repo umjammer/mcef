@@ -1,15 +1,13 @@
 package net.montoyo.mcef;
 
+import net.fabricmc.api.ModInitializer;
+import net.fabricmc.loader.api.FabricLoader;
 import net.montoyo.mcef.utilities.Log;
-import net.minecraftforge.common.config.Configuration;
-import net.minecraftforge.fml.common.Mod;
-import net.minecraftforge.fml.common.SidedProxy;
-import net.minecraftforge.fml.common.event.FMLInitializationEvent;
-import net.minecraftforge.fml.common.event.FMLPreInitializationEvent;
 
-@Mod(modid = "mcef", name = "MCEF", version = MCEF.VERSION)
-public class MCEF {
+//@Mod(modid = "mcef", name = "MCEF", version = MCEF.VERSION)
+public class MCEF implements ModInitializer {
     
+    public static final String MODID = "mcef";
     public static final String VERSION = "0.10";
     public static boolean ENABLE_EXAMPLE;
     public static boolean SKIP_UPDATES;
@@ -20,17 +18,17 @@ public class MCEF {
     public static boolean DISABLE_GPU_RENDERING;
     public static boolean CHECK_VRAM_LEAK;
     
-    @Mod.Instance(owner = "mcef")
+//    @Mod.Instance(owner = "mcef")
     public static MCEF INSTANCE;
     
-    @SidedProxy(serverSide = "net.montoyo.mcef.BaseProxy", clientSide = "net.montoyo.mcef.client.ClientProxy")
+//    @SidedProxy(serverSide = "net.montoyo.mcef.BaseProxy", clientSide = "net.montoyo.mcef.client.ClientProxy")
     public static BaseProxy PROXY;
     
-    @Mod.EventHandler
-    public void onPreInit(FMLPreInitializationEvent ev) {
+    @Override
+    public void onInitialize() {
         Log.info("Loading MCEF config...");
         
-        Configuration cfg = new Configuration(ev.getSuggestedConfigurationFile());
+        Configuration cfg = new Configuration(FabricLoader.getInstance().getConfigDirectory());
         SKIP_UPDATES = cfg.getBoolean("skipUpdates", "main", false, "Do not update binaries.");
         WARN_UPDATES = cfg.getBoolean("warnUpdates", "main", true, "Tells in the chat if a new version of MCEF is available.");
         USE_FORGE_SPLASH = cfg.getBoolean("useForgeSplash", "main", true, "Use Forge's splash screen to display resource download progress (may be unstable).");
@@ -48,8 +46,8 @@ public class MCEF {
         PROXY.onPreInit();
     }
     
-    @Mod.EventHandler
-    public void onInit(FMLInitializationEvent ev) {
+//    @Mod.EventHandler
+    public void onInit(/*FMLInitializationEvent ev*/) {
         Log.info("Now initializing MCEF v%s...", VERSION);
         PROXY.onInit();
     }
@@ -59,5 +57,4 @@ public class MCEF {
         Log.info("Minecraft shutdown hook called!");
         PROXY.onShutdown();
     }
-
 }

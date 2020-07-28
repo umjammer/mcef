@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "id": "mcef",
+  "version": "1.5.2-0.10",
+
+  "name": "mcef",
+  "description": "mcef for Fabric",
+  "authors": [
+    "xxx"
+  ],
+  "contributors": [
+	"umjammer"
+  ],
+  "contact": {
+    "homepage": "https://minecraft.curseforge.com/projects/mcef",
+    "sources": "https://github.com/umjammer/mcef",
+    "issues": "https://github.com/umjammer/mcef/issues"
+  },
+
+  "license": "All Rights Reserved",
+  "icon": "assets/mcef/icon.png",
+
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.shnupbups.easyexcavate.EasyExcavate"
+    ],
+    "client": [
+      "com.shnupbups.easyexcavate.EasyExcavateClient"
+    ]
+  },
+  "mixins": [
+    "mcef.mixins.json"
+  ],
+
+  "depends": {
+    "fabricloader": ">=0.4.0",
+    "fabric": "*"
+  }
+}

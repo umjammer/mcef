@@ -10,16 +10,6 @@ import java.util.HashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import net.minecraft.util.text.Style;
-import net.minecraft.util.text.TextComponentString;
-import net.minecraft.util.text.TextFormatting;
-import net.minecraftforge.common.MinecraftForge;
-import net.minecraftforge.fml.client.SplashProgress;
-import net.montoyo.mcef.coremod.ShutdownPatcher;
-import net.montoyo.mcef.api.IScheme;
-import net.montoyo.mcef.utilities.ForgeProgressListener;
-import net.montoyo.mcef.utilities.IProgressListener;
-import net.montoyo.mcef.utilities.Util;
 import org.cef.CefApp;
 import org.cef.CefClient;
 import org.cef.CefSettings;
@@ -27,21 +17,30 @@ import org.cef.OS;
 import org.cef.browser.CefBrowserOsr;
 import org.cef.browser.CefMessageRouter;
 import org.cef.browser.CefMessageRouter.CefMessageRouterConfig;
+import org.cef.browser.CefRenderer;
 
-import net.minecraftforge.fml.common.eventhandler.SubscribeEvent;
-import net.minecraftforge.fml.common.gameevent.PlayerEvent;
-import net.minecraftforge.fml.common.gameevent.TickEvent;
-import net.minecraft.client.Minecraft;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gui.screen.SplashScreen;
+import net.minecraft.text.LiteralText;
+import net.minecraft.text.Text;
+import net.minecraft.text.TextColor;
+import net.minecraft.util.Formatting;
 import net.montoyo.mcef.BaseProxy;
 import net.montoyo.mcef.MCEF;
 import net.montoyo.mcef.api.IBrowser;
 import net.montoyo.mcef.api.IDisplayHandler;
 import net.montoyo.mcef.api.IJSQueryHandler;
+import net.montoyo.mcef.api.IScheme;
+import net.montoyo.mcef.coremod.ShutdownPatcher;
 import net.montoyo.mcef.example.ExampleMod;
 import net.montoyo.mcef.remote.RemoteConfig;
+import net.montoyo.mcef.utilities.ForgeProgressListener;
+import net.montoyo.mcef.utilities.IProgressListener;
 import net.montoyo.mcef.utilities.Log;
+import net.montoyo.mcef.utilities.Util;
 import net.montoyo.mcef.virtual.VirtualBrowser;
-import org.cef.browser.CefRenderer;
 
 public class ClientProxy extends BaseProxy {
     
@@ -53,7 +52,7 @@ public class ClientProxy extends BaseProxy {
     private CefMessageRouter cefRouter;
     private final ArrayList<CefBrowserOsr> browsers = new ArrayList<>();
     private String updateStr;
-    private final Minecraft mc = Minecraft.getMinecraft();
+    private final MinecraftClient mc = MinecraftClient.getInstance();
     private final DisplayHandler displayHandler = new DisplayHandler();
     private final HashMap<String, String> mimeTypeMap = new HashMap<>();
     private final AppHandler appHandler = new AppHandler();
@@ -75,14 +74,14 @@ public class ClientProxy extends BaseProxy {
 
         boolean enableForgeSplash = false;
         try {
-            Field f = SplashProgress.class.getDeclaredField("enabled");
+            Field f = SplashScreen.class.getDeclaredField("enabled");
             f.setAccessible(true);
             enableForgeSplash = f.getBoolean(null);
         } catch(Throwable t) {
             t.printStackTrace();
         }
 
-        ROOT = mc.mcDataDir.getAbsolutePath().replaceAll("\\\\", "/");
+        ROOT = mc.runDirectory.getAbsolutePath().replaceAll("\\\\", "/");
         if(ROOT.endsWith("."))
             ROOT = ROOT.substring(0, ROOT.length() - 1);
         
@@ -149,6 +148,8 @@ public class ClientProxy extends BaseProxy {
         String exeSuffix;
         if(OS.isWindows())
             exeSuffix = ".exe";
+        else if(OS.isMacintosh())
+            exeSuffix = ".app";
         else
             exeSuffix = "";
         
@@ -169,6 +170,8 @@ public class ClientProxy extends BaseProxy {
                 libs.add("libEGL.dll");
                 libs.add("libcef.dll");
                 libs.add("jcef.dll");
+            } else if(OS.isMacintosh()) {
+                libs.add("libjcef.dylib");
             } else {
                 libs.add("libcef.so");
                 libs.add("libjcef.so");
@@ -209,7 +212,7 @@ public class ClientProxy extends BaseProxy {
             (new ShutdownThread()).start();
         }
 
-        MinecraftForge.EVENT_BUS.register(this);
+//        MinecraftForge.EVENT_BUS.register(this);
         if(MCEF.ENABLE_EXAMPLE)
             exampleMod.onInit();
         
@@ -262,31 +265,30 @@ public class ClientProxy extends BaseProxy {
         return appHandler.isSchemeRegistered(name);
     }
 
-    @SubscribeEvent
-    public void onTick(TickEvent.RenderTickEvent ev) {
-        if(ev.phase == TickEvent.Phase.START) {
-            mc.mcProfiler.startSection("MCEF");
+//    @SubscribeEvent
+    public void onTick(/*TickEvent.RenderTickEvent ev*/) {
+        ServerTickEvents.START_SERVER_TICK.register(server -> {
+            server.getProfiler().push("MCEF");
             
             for(CefBrowserOsr b: browsers)
                 b.mcefUpdate();
 
             displayHandler.update();
-            mc.mcProfiler.endSection();
-        }
+            server.getProfiler().pop();
+        });
     }
     
-    @SubscribeEvent
-    public void onLogin(PlayerEvent.PlayerLoggedInEvent ev) {
-        if(updateStr == null || !MCEF.WARN_UPDATES)
-            return;
-        
-        Style cs = new Style();
-        cs.setColor(TextFormatting.LIGHT_PURPLE);
-        
-        TextComponentString cct = new TextComponentString(updateStr);
-        cct.setStyle(cs);
-        
-        ev.player.sendMessage(cct);
+//    @SubscribeEvent
+    public void onLogin(/*PlayerEvent.PlayerLoggedInEvent ev*/) {
+        ClientTickEvents.START_CLIENT_TICK.register(client -> {
+            if(updateStr == null || !MCEF.WARN_UPDATES)
+                return;
+            
+            Text cct = new LiteralText(updateStr);
+            cct.getStyle().withColor(TextColor.fromFormatting(Formatting.LIGHT_PURPLE));
+            
+            client.player.sendMessage(cct, false);
+        });
     }
     
     public void removeBrowser(CefBrowserOsr b) {
